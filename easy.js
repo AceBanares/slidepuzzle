@@ -8,35 +8,41 @@ const DISTANCE = 100;
 const puzzleDOM = [...document.querySelectorAll("[class^=box]")];
 const puzzlePieces = puzzleDOM.map(piece => {
   return {
+    piece: piece,
     name: piece.className,
-    x: 0,
-    y: 0,
+    pieceX: 0,
+    pieceY: 0,
     order: Number.parseInt(piece.dataset.idx) + 1
   };
 });
 // blankSpace: initialize blank square as last piece so as to remember where it is.
 // Will eventually use it to ask direction of clicked puzzle piece(s).
 // Once pieces move, must remember to update x,y values to new blank space coords
-const blankSpace = { x: 300, y: 300, order: 16 };
+const blankSpace = { blankX: 300, blankY: 300, order: 16 };
 // I'm structuring my program sort of like how Vue does it - all in my puzzle object below.
 const puzzle = {
   pieces: puzzlePieces,
-  piecesDOM: puzzleDOM,
   distance: DISTANCE,
-  blankSpace,
-  currentPiece: null,
-  directionToMove: "",
-  initialize: function() {
+  blank: blankSpace,
+  movement: {
+    currentPiece: null,
+    directionToMove: "",
+    pieceX: 0,
+    pieceY: 0
+  },
+  initialize() {
     /************************************     
     // STEP 2 - Implement initialize function such that it
     // attaches click event handlers for each piece
     // and within that, invokes the slide function
     ***************************************/
-    this.piecesDOM.map(piece => piece.addEventListener("click", this.slide.bind(puzzle)));
+    puzzleDOM.map(piece =>
+      piece.addEventListener("click", this.slide.bind(puzzle))
+    );
     // show puzzle pieces
     this.display();
   },
-  display: function() {
+  display() {
     // initialize pieces to their proper order
     // this.pieces.forEach(piece => {
     //   const pieceDOM = document.querySelector(piece.name);
@@ -54,42 +60,117 @@ const puzzle = {
 
     // display shuffled pieces
     for (let i = 0; i < 4; i++) {
-      y = i * this.distance;
+      let y = i * this.distance;
       for (let j = 0; j < 4; j++) {
-        if(i === 3 && j === 3) break;
-        x = j * this.distance;
+        if (i === 3 && j === 3) break;
+        let x = j * this.distance;
         const index = order.shift();
-        this.pieces[index].x = x;
-        this.pieces[index].y = y;
-        TweenMax.to(this.piecesDOM[index], 0, { x: x, y: y });
+        const { piece } = this.pieces[index];
+        this.pieces[index].pieceX = x;
+        this.pieces[index].pieceY = y;
+        TweenMax.to(piece, 0, { x, y });
       }
     }
   },
-  slide: function() {
+  slide(e) {
     // call isMoveable to find out direction to move
     // remember to adjust coordinates including adjusting blank piece's coordinates
     /************************************
     // STEP 4 - Implement slide function so that you set x,y coordinates of appropriate puzzle piece(s)
     *********************************/
-   
-    console.log(this.isMoveable());
+
+    this.movement.currentPiece = e.target;
+
+    const { pieceX: pX, pieceY: pY } = this.pieces[e.target.dataset.idx];
+
+    this.movement.pieceX = pX;
+    this.movement.pieceY = pY;
+
+    const { currentPiece, pieceX, pieceY } = this.movement;
+
+    const { blankX, blankY } = this.blank;
+
     // Now animate current puzzle piece now that x, y coordinates have been set above
     // TweenMax.to(this.currentPiece, 0.17, {
     //   x: this.pieces[this.currentPiece.dataset.idx].x,
     //   y: this.pieces[this.currentPiece.dataset.idx].y,
     //   ease: Power0.easeNone
     // });
+
+    if (this.isMoveable()) {
+      switch (this.movement.directionToMove) {
+        case "up":
+          for (y = blankY; y <= pieceY; y += DISTANCE) {
+            this.pieces.forEach(piece => this.move(piece, blankX, y));
+          }
+          break;
+        case "down":
+          for (y = blankY; y >= pieceY; y -= DISTANCE) {
+            this.pieces.forEach(piece => this.move(piece, blankX, y));
+          }
+          break;
+        case "left":
+          for (x = blankX; x <= pieceX; x += DISTANCE) {
+            this.pieces.forEach(piece => this.move(piece, x, blankY));
+          }
+          break;
+        case "right":
+          for (x = blankX; x >= pieceX; x -= DISTANCE) {
+            this.pieces.forEach(piece => this.move(piece, x, blankY));
+          }
+          break;
+        default:
+      }
+      // check if puzzle is solved]
+      let isSolved = true;
+      for (let i = 0; i < 4; i++) {
+        let y = i * this.distance;
+        for (let j = 0; j < 4; j++) {
+          if (i === 3 && j === 3) break;
+          let x = j * this.distance;
+          let order = i * 4 + j;
+          const { pieceX, pieceY } = this.pieces[order];
+          if (!(pieceX == x && pieceY == y)) {
+            isSolved = false;
+          }
+        }
+        if (!isSolved) break;
+      }
+      if (isSolved) alert("Winner!");
+    }
   },
-  isMoveable: function() {
+  move(piece, x, y) {
+    if (piece.pieceX === x && piece.pieceY === y) {
+      [piece.pieceY, this.blank.blankY] = [this.blank.blankY, piece.pieceY];
+      [piece.pieceX, this.blank.blankX] = [this.blank.blankX, piece.pieceX];
+      TweenMax.to(piece.piece, 0.17, {
+        x: piece.pieceX,
+        y: piece.pieceY,
+        ease: Power0.easeNone
+      });
+    }
+  },
+  isMoveable() {
     /********************************************
     // STEP 3 - Implement isMoveable function to find out / return which direction to move
     // Is the clicked piece movable?
     // If yes, then return a direction to one of: "up", "down", "left", "right"
     // If no, then return a direction of ""
      ******************************************/
-    // blankSpace.x || blankSpace.y
-    console.log();
-    return true;
+
+    let canMove = true;
+    const { pieceX, pieceY } = this.movement;
+    const { blankX, blankY } = this.blank;
+
+    if (pieceX === blankX) {
+      this.movement.directionToMove = pieceY > blankY ? "up" : "down";
+    } else if (pieceY === blankY) {
+      this.movement.directionToMove = pieceX > blankX ? "left" : "right";
+    } else {
+      this.movement.directionToMove = "";
+      canMove = false;
+    }
+    return canMove;
   }
 };
 
