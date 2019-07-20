@@ -1,3 +1,5 @@
+// animation delay in seconds
+const DELAY = 0.17;
 // distance: number of pixels a puzzle piece will move
 const DISTANCE = 100;
 /**********************************
@@ -16,12 +18,21 @@ const puzzlePieces = puzzleDOM.map(piece => {
   };
 });
 // blankSpace: initialize blank square as last piece so as to remember where it is.
+const blankDOM = document.querySelector(".blank");
+const blankSpace = {
+  piece: blankDOM,
+  name: blankDOM.className,
+  blankX: 300,
+  blankY: 300,
+  order: 16
+};
 // Will eventually use it to ask direction of clicked puzzle piece(s).
 // Once pieces move, must remember to update x,y values to new blank space coords
-const blankSpace = { blankX: 300, blankY: 300, order: 16 };
 // I'm structuring my program sort of like how Vue does it - all in my puzzle object below.
 const puzzle = {
+  moves: 0,
   pieces: puzzlePieces,
+  delay: DELAY,
   distance: DISTANCE,
   blank: blankSpace,
   movement: {
@@ -60,17 +71,22 @@ const puzzle = {
 
     // display shuffled pieces
     for (let i = 0; i < 4; i++) {
-      let y = i * this.distance;
+      const y = i * this.distance;
       for (let j = 0; j < 4; j++) {
-        if (i === 3 && j === 3) break;
-        let x = j * this.distance;
+        const x = j * this.distance;
+        if (i === 3 && j === 3) {
+          const {piece, blankX, blankY} = this.blank;
+          TweenMax.set(piece, {x: blankX, y: blankY});
+        } else {
         const index = order.shift();
         const { piece } = this.pieces[index];
         this.pieces[index].pieceX = x;
         this.pieces[index].pieceY = y;
-        TweenMax.to(piece, 0, { x, y });
+        TweenMax.set(piece, { x, y });
+        }
       }
     }
+
   },
   slide(e) {
     // call isMoveable to find out direction to move
@@ -86,7 +102,7 @@ const puzzle = {
     this.movement.pieceX = pX;
     this.movement.pieceY = pY;
 
-    const { currentPiece, pieceX, pieceY } = this.movement;
+    const { pieceX, pieceY } = this.movement;
 
     const { blankX, blankY } = this.blank;
 
@@ -98,6 +114,7 @@ const puzzle = {
     // });
 
     if (this.isMoveable()) {
+      this.moves++;
       switch (this.movement.directionToMove) {
         case "up":
           for (y = blankY; y <= pieceY; y += DISTANCE) {
@@ -121,14 +138,19 @@ const puzzle = {
           break;
         default:
       }
-      // check if puzzle is solved]
+
+      const {piece, blankX: bX, blankY: bY} = this.blank;
+      piece.textContent = `Moves ${this.moves}`;
+      TweenMax.set(piece, {x: bX, y: bY});
+      
+      // check if puzzle is solved
       let isSolved = true;
       for (let i = 0; i < 4; i++) {
-        let y = i * this.distance;
+        const y = i * this.distance;
         for (let j = 0; j < 4; j++) {
           if (i === 3 && j === 3) break;
-          let x = j * this.distance;
-          let order = i * 4 + j;
+          const x = j * this.distance;
+          const order = i * 4 + j;
           const { pieceX, pieceY } = this.pieces[order];
           if (!(pieceX == x && pieceY == y)) {
             isSolved = false;
@@ -136,14 +158,17 @@ const puzzle = {
         }
         if (!isSolved) break;
       }
-      if (isSolved) alert("Winner!");
+      if (isSolved) {
+        setTimeout(() => {alert("Winner!");}, this.delay * 1001);
+        puzzleDOM.forEach(piece => piece.style.pointerEvents = "none");
+      }
     }
   },
   move(piece, x, y) {
     if (piece.pieceX === x && piece.pieceY === y) {
       [piece.pieceY, this.blank.blankY] = [this.blank.blankY, piece.pieceY];
       [piece.pieceX, this.blank.blankX] = [this.blank.blankX, piece.pieceX];
-      TweenMax.to(piece.piece, 0.17, {
+      TweenMax.to(piece.piece, this.delay, {
         x: piece.pieceX,
         y: piece.pieceY,
         ease: Power0.easeNone
@@ -171,6 +196,26 @@ const puzzle = {
       canMove = false;
     }
     return canMove;
+  },
+  unshuffle() {
+    for (let i = 0; i < 4; i++) {
+      let y = i * this.distance;
+      for (let j = 0; j < 4; j++) {
+        let x = j * this.distance;
+        if (i === 3 && j === 3) {
+          const {piece} = this.blank;
+          this.blank.blankX = x;
+          this.blank.blankY = y;
+          TweenMax.set(piece, { x, y });
+        } else {
+        const order = i * 4 + j;
+        const { piece } = this.pieces[order];
+        this.pieces[order].pieceX = x;
+        this.pieces[order].pieceY = y;
+        TweenMax.set(piece, { x, y });
+        }
+      }
+    }
   }
 };
 

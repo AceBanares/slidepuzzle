@@ -19,6 +19,19 @@
             color: lime;
         }
         
+        .blank {
+            width: 100px;
+            height: 100px;
+            box-sizing: border-box;
+            position: absolute;
+            text-align: center;
+            font-size: 25px;
+            line-height: 50px;
+            font-weight: bolder;
+            font-family: 'Courier New', Courier, monospace;
+            color: gold;
+        }
+
         main {
             height: 400px;
             width: 400px;
@@ -26,11 +39,18 @@
             position: relative;
             background-color: brown;
         }
+
+        .centered {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
     </style>
 </head>
 
 <body>
-    <main>
+    <main class="centered">
         <div class="box1" data-idx="0">1</div>
         <div class="box2" data-idx="1">2</div>
         <div class="box3" data-idx="2">3</div>
@@ -45,7 +65,8 @@
         <div class="box12" data-idx="11">12</div>
         <div class="box13" data-idx="12">13</div>
         <div class="box14" data-idx="13">14</div>
-        <div class="box15" data-idx="14">15</div>
+        <div class="box15" data-idx="14">15</div>    
+        <div class="blank" data-idx="16">Moves 0</div>
     </main>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/2.1.2/TweenMax.min.js"></script>
     <script src="easy.js" defer></script>
